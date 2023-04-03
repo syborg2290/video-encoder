@@ -1,0 +1,32 @@
+{
+  "name": "workflowengine",
+  "version": "0.3.2",
+  "private": true,
+  "description": "The workflow engine of MVE",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./node_modules/nodemon/bin/nodemon.js ./index.js"
+  },
+  
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "eslint-config-airbnb": "^18.2.0",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-react": "^7.22.0",
+    "eslint-plugin-react-hooks": "^4.1.2",
+    "fastify": "^3.4.1",
+    "fastify-register-routes": "^1.1.2",
+    "fastify-routes": "^3.0.1",
+    "fastify-sensible": "^3.0.1",
+    "mongoose": "^5.11.9",
+    "pino": "^6.6.1",
+    "pino-pretty": "^4.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.22.0",
+    "nodemon": "^2.0.4"
+  }
+}

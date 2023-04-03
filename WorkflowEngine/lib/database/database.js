@@ -1,0 +1,118 @@
+/*
+ * Storage, the gateway to the database
+ */
+
+// Dependencies
+const mongoose = require('mongoose');
+
+const log = require('../log');
+const config = require('../config/config');
+const constants = require('../config/constants');
+const Job = require('../models/job');
+const Task = require('../models/task');
+
+const database = {};
+
+database.isConnectedToDb = false;
+
+database.isConnected = function isConnected() {
+  return database.isConnectedToDb;
+};
+
+mongoose.connection.on('error', (err) => {
+  log.error(`Got error event ${err}`);
+});
+
+mongoose.connection.on('disconnected', () => {
+  log.error('Got disconnected event from database');
+  database.isConnectedToDb = false;
+});
+
+mongoose.connection.on('reconnected', () => {
+  log.info('Got reconnected event from database');
+  database.isConnectedToDb = true;
+});
+
+database.connect = function connect() {
+  mongoose
+    .connect(config.database.url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+      connectTimeoutMS: 3000,
+      useFindAndModify: false,
+    })
+    .then(() => {
+      log.info('Successfully connected to workflow database');
+      database.isConnectedToDb = true;
+    })
+    .catch((err) => {
+      log.error(`An error occurred while trying to connect to the workflow database, retrying in ${config.database.connectRetry}s. Err: ${err}`);
+      setTimeout(database.connect, config.database.connectRetry * 1000);
+    });
+};
+
+database.disconnect = function disconnect() {
+  if (database.isConnected()) {
+    mongoose
+      .disconnect()
+      .then(() => {
+        database.isConnectedToDb = false;
+      })
+      .catch((err) => {
+        log.error(`An error occurred while trying to disconnect from the workflow database. Err: ${err}`);
+      });
+  }
+};
+
+database.getJobs = async function getJobs(status) {
+  const jobs = await Job.find({ status }).catch((err) => {
+    log.error(`An error occurred while searching for jobs. Err: ${err}`);
+  });
+
+  return jobs;
+};
+
+database.getTasksNewOrInProgress = async function getTasksNewOrInProgress(jobId) {
+  const filter = {
+    jobId,
+    $or: [{ status: constants.WORKFLOW_STATUS.INPROGRESS }, { status: constants.WORKFLOW_STATUS.NEW }],
+  };
+
+  const tasks = await Task.find(filter).catch((err) => {
+    log.error(`An error occurred while searching for tasks. Err: ${err}`);
+  });
+  return tasks;
+};
+
+database.updateJob = async function updateJob(job) {
+  try {
+    const { ...updateData } = job._doc;
+    const update = await Job.findByIdAndUpdate(job.id, updateData);
+    return update;
+  } catch (err) {
+    log.error(`An error occurred while trying to update jobs ${job.name}. Err: ${err}`);
+    return null;
+  }
+};
+
+database.updateJobStatus = async function updateJob(jobId, status) {
+  try {
+    const update = await Job.findByIdAndUpdate(jobId, { status });
+    return update;
+  } catch (err) {
+    log.error(`An error occurred while trying to update jobs ${jobId}. Err: ${err}`);
+    return null;
+  }
+};
+
+database.addTask = async function addTask(task) {
+  try {
+    return task.save();
+  } catch (err) {
+    log.error(`An error occurred while trying to add task ${task.name}. Err: ${err}`);
+    return null;
+  }
+};
+
+module.exports = database;
